@@ -102,6 +102,36 @@ router.get('/orders/mine', requireUser, (req, res) => {
   res.json(myOrders);
 });
 
+// Отменить заказ
+router.post('/orders/:id/cancel', requireUser, async (req, res) => {
+  const { id } = req.params;
+  const data = db.read();
+  const order = data.orders.find(o => o.id === id && o.nickname.toLowerCase() === req.session.nickname.toLowerCase());
+  
+  if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+  if (order.status !== 'pending') return res.status(400).json({ error: 'Можно отменить только ожидающий заказ' });
+  
+  order.status = 'cancelled';
+  order.updatedAt = new Date().toISOString();
+  await db.write(data);
+  res.json({ ok: true, order });
+});
+
+// Подтвердить получение (клад найден)
+router.post('/orders/:id/confirm', requireUser, async (req, res) => {
+  const { id } = req.params;
+  const data = db.read();
+  const order = data.orders.find(o => o.id === id && o.nickname.toLowerCase() === req.session.nickname.toLowerCase());
+  
+  if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+  if (order.status !== 'confirmed') return res.status(400).json({ error: 'Заказ ещё не готов к получению' });
+  
+  order.status = 'completed';
+  order.updatedAt = new Date().toISOString();
+  await db.write(data);
+  res.json({ ok: true, order });
+});
+
 module.exports = router;
 
 // ---- CHAT ROUTES ----

@@ -233,6 +233,13 @@ function renderOrder(o) {
 
   const note = o.adminNote ? `<div class="order-sub" style="color:var(--parchment-dim); font-style:italic;">${escapeHtml(o.adminNote)}</div>` : '';
 
+  let actionBtns = '';
+  if (o.status === 'pending') {
+    actionBtns = `<button class="btn btn-ghost btn-sm" style="margin-top:8px; border-color:var(--danger); color:var(--danger);" onclick="cancelOrder('${o.id}')">Отменить заказ</button>`;
+  } else if (o.status === 'confirmed') {
+    actionBtns = `<button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="confirmOrder('${o.id}')">Клад найден!</button>`;
+  }
+
   return `
     <div class="card order-card">
       <div class="order-top">
@@ -244,7 +251,32 @@ function renderOrder(o) {
       </div>
       ${coordsBlock}
       ${note}
+      ${actionBtns ? `<div>${actionBtns}</div>` : ''}
     </div>`;
+}
+
+async function cancelOrder(id) {
+  if (!confirm('Точно отменить заявку?')) return;
+  try {
+    const res = await fetch('/api/user/orders/' + id + '/cancel', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка');
+    loadOrders();
+  } catch(e) {
+    showToast(e.message, true);
+  }
+}
+
+async function confirmOrder(id) {
+  if (!confirm('Подтверждаешь, что клад найден?')) return;
+  try {
+    const res = await fetch('/api/user/orders/' + id + '/confirm', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка');
+    loadOrders();
+  } catch(e) {
+    showToast(e.message, true);
+  }
 }
 
 function escapeHtml(str) {
