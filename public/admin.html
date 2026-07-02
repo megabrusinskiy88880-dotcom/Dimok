@@ -361,9 +361,16 @@ async function loadOrders() {
         <label>Заметка для покупателя (необязательно)</label>
         <input type="text" class="order-note" data-id="${o.id}" placeholder="Например: сундук под водопадом" value="${escapeHtml(o.adminNote || '')}">
       </div>
-      <div style="margin-top:14px;">
-        <button class="btn btn-primary btn-sm save-order-btn" data-id="${o.id}">Сохранить</button>
-      </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Быстрые действия</label>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-ghost btn-sm" style="border-color:var(--danger); color:var(--danger); flex:1;" onclick="quickOrderStatus('${o.id}', 'cancelled')">Отменить</button>
+            <button type="button" class="btn btn-primary btn-sm" style="flex:1;" onclick="quickOrderStatus('${o.id}', 'confirmed')">Подтвердить</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0; grid-column: 1 / -1;">
+          <button class="btn btn-ghost btn-sm save-order-btn" data-id="${o.id}">Сохранить изменения вручную</button>
+        </div>
     </div>
   `).join('');
 
@@ -394,8 +401,34 @@ async function saveOrder(id) {
     loadLots();
   } catch (err) {
     showToast(err.message, true);
+  } finally {
     btn.disabled = false;
-    btn.textContent = 'Сохранить';
+    btn.textContent = 'Сохранить изменения вручную';
+  }
+}
+
+async function quickOrderStatus(id, status) {
+  const card = document.querySelector(`.order-admin-card[data-id="${id}"]`);
+  const coords = card.querySelector('.order-coords').value;
+  const adminNote = card.querySelector('.order-note').value;
+  
+  if (status === 'confirmed' && !coords.trim()) {
+    if (!confirm('Координаты не введены! Всё равно подтвердить заказ?')) return;
+  }
+  
+  try {
+    const res = await fetch('/api/admin/orders/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, coords, adminNote })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Ошибка');
+    showToast('Заказ ' + (status === 'cancelled' ? 'отменен' : 'подтвержден'));
+    loadOrders();
+    loadLots();
+  } catch (err) {
+    showToast(err.message, true);
   }
 }
 
