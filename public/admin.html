@@ -163,8 +163,8 @@
         <input type="text" id="lotTitle" required maxlength="80">
       </div>
       <div class="field">
-        <label for="lotPrice">Цена, ₽</label>
-        <input type="number" id="lotPrice" min="0" step="1" required>
+        <label for="lotPrice">Цена (ресурсы)</label>
+        <input type="text" id="lotPrice" placeholder="Например: 64 железа" required>
       </div>
       <div class="field">
         <label for="lotDesc">Описание</label>
@@ -281,7 +281,7 @@ async function loadOrders() {
       <div class="order-admin-top">
         <div>
           <div class="order-admin-title">${escapeHtml(o.lotTitle)} <span class="muted" style="font-size:14px;">× ${o.quantity}</span></div>
-          <div class="order-admin-sub">от ${escapeHtml(o.nickname)} · ${new Date(o.createdAt).toLocaleString('ru-RU')} · ${o.price * o.quantity} ₽</div>
+          <div class="order-admin-sub">от ${escapeHtml(o.nickname)} · ${new Date(o.createdAt).toLocaleString('ru-RU')} · ${o.quantity} шт (по ${escapeHtml(String(o.price))})</div>
         </div>
         <span class="status-pill status-${o.status}">${statusLabels[o.status] || o.status}</span>
       </div>
@@ -363,7 +363,7 @@ async function loadLots() {
       <div class="lot-admin-title">${escapeHtml(lot.title)}</div>
       ${!lot.active ? '<span class="inactive-badge">скрыт</span>' : ''}
       <div class="lot-admin-meta">
-        <span>${lot.price} ₽</span>
+        <span>${escapeHtml(String(lot.price))}</span>
         <span>шт: ${lot.quantity}</span>
       </div>
       <div class="lot-admin-actions">

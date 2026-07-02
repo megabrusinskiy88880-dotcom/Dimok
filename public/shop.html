@@ -253,7 +253,7 @@ function renderLotCard(lot) {
         <div class="lot-title">${escapeHtml(lot.title)}</div>
         <div class="lot-desc">${escapeHtml(lot.description || '')}</div>
         <div class="lot-meta">
-          <span class="lot-price">${lot.price} ₽</span>
+          <span class="lot-price" style="font-size: 16px;">${lot.price}</span>
           <span class="lot-qty ${qtyClass}">${qtyText}</span>
         </div>
       </div>
@@ -270,7 +270,7 @@ function openModal(lot) {
   if (!lot || lot.quantity === 0) return;
   currentLot = lot;
   document.getElementById('modalTitle').textContent = lot.title;
-  document.getElementById('modalPrice').textContent = lot.price + ' ₽ / шт';
+  document.getElementById('modalPrice').textContent = lot.price + ' (за 1 шт)';
   const qtyInput = document.getElementById('modalQty');
   qtyInput.value = 1;
   qtyInput.max = lot.quantity;

@@ -189,7 +189,7 @@ function renderOrder(o) {
       <div class="order-top">
         <div>
           <div class="order-title">${escapeHtml(o.lotTitle)}</div>
-          <div class="order-sub">${o.quantity} шт · ${o.price * o.quantity} ₽ · ${date}</div>
+          <div class="order-sub">${o.quantity} шт · (по ${escapeHtml(String(o.price))}) · ${date}</div>
         </div>
         <span class="status-pill status-${o.status}">${statusLabels[o.status] || o.status}</span>
       </div>

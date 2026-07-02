@@ -90,6 +90,19 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Фоновая музыка -->
+<audio id="bgm" src="/bgm.mp3" loop></audio>
+<script>
+  // Запуск музыки по первому клику/касанию (т.к. браузеры блочат автоплей)
+  document.body.addEventListener('pointerdown', function() {
+    const bgm = document.getElementById('bgm');
+    if (bgm.paused) {
+      bgm.volume = 0.4;
+      bgm.play().catch(() => {});
+    }
+  }, { once: true });
+</script>
+
 <script>
 const form = document.getElementById('loginForm');
 const submitBtn = document.getElementById('submitBtn');
