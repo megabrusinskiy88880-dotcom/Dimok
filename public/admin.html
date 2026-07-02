@@ -88,6 +88,32 @@
     font-family:var(--font-mono); font-size:12px; color:var(--parchment-dim);
     border:1px solid var(--stone-700); padding:6px 14px; border-radius:20px;
   }
+  
+  /* Admin Chat Layout */
+  #chatsLayout { display: flex; height: 60vh; min-height: 400px; border: 1px solid var(--stone-700); border-radius: 4px; overflow: hidden; background: var(--stone-900); }
+  #chatsSidebar { width: 300px; border-right: 1px solid var(--stone-700); overflow-y: auto; background: var(--stone-950); }
+  #chatsMain { flex: 1; display: flex; flex-direction: column; background: var(--stone-800); }
+  .chat-user-item { padding: 14px; border-bottom: 1px solid var(--stone-700); cursor: pointer; transition: background 0.1s; }
+  .chat-user-item:hover, .chat-user-item.active { background: var(--stone-800); border-left: 3px solid var(--gold-bright); }
+  .chat-user-name { font-weight: bold; color: var(--gold-bright); font-size: 15px; margin-bottom:4px; }
+  .chat-user-last { font-size: 13px; color: var(--parchment-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-head { padding: 16px; border-bottom: 1px solid var(--stone-700); display: flex; align-items: center; gap: 12px; background: var(--stone-900); }
+  .chat-title { font-family: var(--font-display); font-size: 18px; color: var(--gold-bright); }
+  .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.4; word-wrap: break-word;}
+  .msg.user { align-self: flex-start; background: var(--stone-600); color: var(--parchment); border-bottom-left-radius: 2px; }
+  .msg.admin { align-self: flex-end; background: var(--gold); color: var(--ink); border-bottom-right-radius: 2px; }
+  .chat-foot { padding: 12px; border-top: 1px solid var(--stone-700); display: flex; gap: 8px; background: var(--stone-900); }
+  .chat-foot input { flex: 1; background: var(--stone-950); border: 1px solid var(--stone-600); color: var(--parchment); padding: 8px 12px; border-radius: 4px; }
+  .chat-foot input:focus { outline: none; border-color: var(--gold); }
+  
+  @media(max-width: 700px) {
+    #chatsSidebar { width: 100%; }
+    #chatsMain { display: none; width: 100%; }
+    #chatsLayout.chat-open #chatsSidebar { display: none; }
+    #chatsLayout.chat-open #chatsMain { display: flex; }
+    #adminChatBackBtn { display: inline-flex !important; }
+  }
 </style>
 </head>
 <body>
@@ -125,6 +151,7 @@
       <button class="tab-btn active" data-tab="orders">Заявки</button>
       <button class="tab-btn" data-tab="lots">Лоты</button>
       <button class="tab-btn" data-tab="users">Пользователи</button>
+      <button class="tab-btn" data-tab="chats">Чаты</button>
     </div>
 
     <!-- ЗАЯВКИ -->
@@ -148,6 +175,30 @@
     <div class="tab-panel" id="tab-users">
       <div class="section-head"><h2>Пользователи</h2></div>
       <div class="orders-admin-list" id="usersList">Загрузка...</div>
+    </div>
+
+    <!-- ЧАТЫ -->
+    <div class="tab-panel" id="tab-chats">
+      <div class="section-head"><h2>Чаты</h2></div>
+      
+      <div id="chatsLayout">
+        <div id="chatsSidebar">
+          <!-- User list populated here -->
+        </div>
+        <div id="chatsMain">
+          <div class="chat-head" id="adminChatHead">
+            <button id="adminChatBackBtn" class="btn btn-ghost btn-sm" style="display:none; padding: 4px 8px;">&larr; Назад</button>
+            <div id="adminChatTitle" class="chat-title">Выберите чат</div>
+          </div>
+          <div class="chat-body" id="adminChatMessages">
+             <div class="muted center" style="margin-top:auto;margin-bottom:auto;">Выберите пользователя слева</div>
+          </div>
+          <form class="chat-foot" id="adminChatForm" style="display:none;">
+            <input type="text" id="adminChatInput" placeholder="Ответить..." autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-sm">Отпр.</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -256,7 +307,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    const tabId = btn.dataset.tab;
+    document.getElementById('tab-' + tabId).classList.add('active');
+
+    if (tabId === 'orders') loadOrders();
+    if (tabId === 'lots') loadLots();
+    if (tabId === 'users') loadUsers();
+    if (tabId === 'chats') loadChatsList();
   });
 });
 
@@ -494,6 +551,96 @@ async function loadUsers() {
     `<span class="stat-chip">${escapeHtml(u.nickname)} · ${new Date(u.createdAt).toLocaleDateString('ru-RU')}</span>`
   ).join('') + `</div>`;
 }
+
+// --- ЧАТЫ ---
+let currentChatUserId = null;
+let adminChatPolling = null;
+let chatListPolling = null;
+let lastAdminMsgCount = 0;
+
+async function loadChatsList() {
+  const res = await fetch('/api/admin/chats');
+  if (res.status === 401) return;
+  const data = await res.json();
+  const sidebar = document.getElementById('chatsSidebar');
+  
+  if (data.users.length === 0) {
+    sidebar.innerHTML = `<div class="muted center" style="padding:20px;">Нет пользователей</div>`;
+    return;
+  }
+  
+  sidebar.innerHTML = data.users.map(u => `
+    <div class="chat-user-item ${u.id === currentChatUserId ? 'active' : ''}" onclick="openChat('${u.id}', '${escapeHtml(u.nickname)}')">
+      <div class="chat-user-name">${escapeHtml(u.nickname)}</div>
+      <div class="chat-user-last">${u.lastMessage ? (u.lastMessage.sender==='admin'?'Вы: ':'')+escapeHtml(u.lastMessage.text) : 'Нет сообщений'}</div>
+    </div>
+  `).join('');
+  
+  if (!chatListPolling) {
+    chatListPolling = setInterval(() => {
+      if (document.getElementById('tab-chats').classList.contains('active')) loadChatsList();
+    }, 5000);
+  }
+}
+
+async function openChat(userId, nickname) {
+  currentChatUserId = userId;
+  document.getElementById('chatsLayout').classList.add('chat-open');
+  document.getElementById('adminChatTitle').textContent = nickname;
+  document.getElementById('adminChatForm').style.display = 'flex';
+  
+  document.querySelectorAll('.chat-user-item').forEach(el => el.classList.remove('active'));
+  loadChatsList(); // To highlight active user
+  
+  lastAdminMsgCount = 0;
+  await loadMessages();
+  
+  if (adminChatPolling) clearInterval(adminChatPolling);
+  adminChatPolling = setInterval(() => {
+    if (document.getElementById('tab-chats').classList.contains('active')) loadMessages();
+  }, 3000);
+}
+
+document.getElementById('adminChatBackBtn').addEventListener('click', () => {
+  document.getElementById('chatsLayout').classList.remove('chat-open');
+  if (adminChatPolling) { clearInterval(adminChatPolling); adminChatPolling = null; }
+  currentChatUserId = null;
+  loadChatsList();
+});
+
+async function loadMessages() {
+  if (!currentChatUserId) return;
+  const res = await fetch('/api/admin/chat/' + currentChatUserId);
+  const data = await res.json();
+  const container = document.getElementById('adminChatMessages');
+  
+  if (data.messages.length === 0) {
+    container.innerHTML = '<div class="muted center">Нет сообщений</div>';
+    return;
+  }
+  
+  const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 1;
+  const newHTML = data.messages.map(m => `<div class="msg ${m.sender}">${escapeHtml(m.text)}</div>`).join('');
+  
+  if (container.innerHTML !== newHTML) {
+    container.innerHTML = newHTML;
+    if (data.messages.length > lastAdminMsgCount || isScrolledToBottom) {
+       container.scrollTop = container.scrollHeight;
+    }
+    lastAdminMsgCount = data.messages.length;
+  }
+}
+
+document.getElementById('adminChatForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('adminChatInput');
+  const text = input.value;
+  if (!text.trim() || !currentChatUserId) return;
+  input.value = '';
+  await fetch('/api/admin/chat/' + currentChatUserId, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+  loadMessages();
+  loadChatsList();
+});
 
 checkAuth();
 </script>

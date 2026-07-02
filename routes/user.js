@@ -103,3 +103,31 @@ router.get('/orders/mine', requireUser, (req, res) => {
 });
 
 module.exports = router;
+
+// ---- CHAT ROUTES ----
+
+// Получить сообщения пользователя
+router.get('/chat', requireUser, (req, res) => {
+  const data = db.read();
+  const userId = req.session.userId;
+  const msgs = data.messages.filter(m => m.userId === userId);
+  res.json({ ok: true, messages: msgs });
+});
+
+// Отправить сообщение от пользователя
+router.post('/chat', requireUser, async (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Пустое сообщение' });
+  
+  const data = db.read();
+  const msg = {
+    id: db.genId('msg'),
+    userId: req.session.userId,
+    sender: 'user',
+    text: String(text).trim(),
+    createdAt: new Date().toISOString()
+  };
+  data.messages.push(msg);
+  await db.write(data);
+  res.json({ ok: true, message: msg });
+});

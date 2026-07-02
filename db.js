@@ -13,7 +13,7 @@ function ensureDb() {
     if (DB_PATH !== defaultDb && fs.existsSync(defaultDb)) {
       fs.copyFileSync(defaultDb, DB_PATH);
     } else {
-      fs.writeFileSync(DB_PATH, JSON.stringify({ lots: [], orders: [], users: [] }, null, 2));
+      fs.writeFileSync(DB_PATH, JSON.stringify({ lots: [], orders: [], users: [], messages: [] }, null, 2));
     }
   }
 }
@@ -26,9 +26,10 @@ function read() {
     parsed.lots = parsed.lots || [];
     parsed.orders = parsed.orders || [];
     parsed.users = parsed.users || [];
+    parsed.messages = parsed.messages || [];
     return parsed;
   } catch (e) {
-    return { lots: [], orders: [], users: [] };
+    return { lots: [], orders: [], users: [], messages: [] };
   }
 }
 

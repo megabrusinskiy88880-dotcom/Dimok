@@ -166,3 +166,55 @@ router.get('/users', requireAdmin, (req, res) => {
 });
 
 module.exports = router;
+
+// ---- CHAT ROUTES ----
+
+// Получить список пользователей для чата
+router.get('/chats', requireAdmin, (req, res) => {
+  const data = db.read();
+  // Возвращаем список пользователей. Можно также добавить последнее сообщение для удобства.
+  const usersWithChats = data.users.map(u => {
+    const userMsgs = data.messages.filter(m => m.userId === u.id);
+    const lastMsg = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1] : null;
+    return { ...u, lastMessage: lastMsg };
+  });
+  // Отсортируем: сначала те, у кого есть новые/последние сообщения
+  usersWithChats.sort((a, b) => {
+    const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+    const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+  res.json({ ok: true, users: usersWithChats });
+});
+
+// Получить переписку с конкретным юзером
+router.get('/chat/:userId', requireAdmin, (req, res) => {
+  const { userId } = req.params;
+  const data = db.read();
+  const msgs = data.messages.filter(m => m.userId === userId);
+  res.json({ ok: true, messages: msgs });
+});
+
+// Отправить сообщение юзеру от админа
+router.post('/chat/:userId', requireAdmin, async (req, res) => {
+  const { userId } = req.params;
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Пустое сообщение' });
+  
+  const data = db.read();
+  // Проверим, существует ли юзер
+  if (!data.users.find(u => u.id === userId)) {
+    return res.status(404).json({ error: 'Пользователь не найден' });
+  }
+
+  const msg = {
+    id: db.genId('msg'),
+    userId,
+    sender: 'admin',
+    text: String(text).trim(),
+    createdAt: new Date().toISOString()
+  };
+  data.messages.push(msg);
+  await db.write(data);
+  res.json({ ok: true, message: msg });
+});
