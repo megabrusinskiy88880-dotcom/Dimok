@@ -67,7 +67,7 @@ router.post('/lots', requireAdmin, upload.single('photo'), async (req, res) => {
   const lot = {
     id: db.genId('lot'),
     title: String(title).trim(),
-    price: Number(price) || 0,
+    price: String(price).trim() || 'Бесплатно',
     description: String(description || '').trim(),
     quantity: Number.isFinite(Number(quantity)) ? Number(quantity) : 1,
     photo: photoPath,
@@ -87,7 +87,7 @@ router.put('/lots/:id', requireAdmin, upload.single('photo'), async (req, res) =
 
   const { title, price, description, quantity, active } = req.body;
   if (title !== undefined) lot.title = String(title).trim();
-  if (price !== undefined) lot.price = Number(price) || 0;
+  if (price !== undefined) lot.price = String(price).trim() || 'Бесплатно';
   if (description !== undefined) lot.description = String(description).trim();
   if (quantity !== undefined) lot.quantity = Number(quantity) || 0;
   if (active !== undefined) lot.active = active === 'true' || active === true;
