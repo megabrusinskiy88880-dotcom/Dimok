@@ -1,0 +1,33 @@
+{
+  "lots": [
+    {
+      "id": "lot_1",
+      "title": "Свежая Конопля (Hemp Leaf)",
+      "desc": "Свежие листья конопли. Выращены в самом густом джангл-биоме.",
+      "price": 10,
+      "qty": 64,
+      "photo": "hemp_leaf.png",
+      "hidden": false
+    },
+    {
+      "id": "lot_2",
+      "title": "Плотный Джойнт",
+      "desc": "Готовый к употреблению джойнт. Скручен по всем правилам.",
+      "price": 50,
+      "qty": 10,
+      "photo": "joint_icon.png",
+      "hidden": false
+    },
+    {
+      "id": "lot_3",
+      "title": "Стеклянный Бонг",
+      "desc": "Стеклянный бонг с отличной тягой. Осторожно, хрупкое!",
+      "price": 300,
+      "qty": 3,
+      "photo": "bong_icon.png",
+      "hidden": false
+    }
+  ],
+  "orders": [],
+  "users": []
+}
